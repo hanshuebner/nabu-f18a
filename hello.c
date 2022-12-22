@@ -54,14 +54,15 @@ main()
     put_string("F18A not found, 40 chars/line\n");
   }
 
+  set_scroll_region(0, 21);
+  set_cursor(22, 0);
+  put_string("----------------------------------------");
+
   hcca_write(CMD_CHAT);
   while (true) {
     if (has_interrupt(INT_MASK_KEYBOARD)) {
       uint8_t c = keyboard_get();
       if (c) {
-        if (c == '\r') {
-          c = '\n';
-        }
         put_char(c);
         hcca_write(c);
       }

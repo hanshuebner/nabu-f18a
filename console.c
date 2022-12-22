@@ -52,7 +52,7 @@ read_status_reg()
 }
 
 inline void
-register_set(uint8_t reg, uint8_t value)
+vdp_set_register(uint8_t reg, uint8_t value)
 {
   write_status_reg(value);
   write_status_reg(0x80 | reg);
@@ -86,13 +86,19 @@ vram_read()
   return z80_inp(VDP_DATA);
 }
 
+void
+vdp_memcpy(uint16_t destination, uint8_t* src, uint16_t count)
+{
+  vram_set_write_address(destination);
+  for (int i = 0; i < count; i++) {
+    vram_write(src[i]);
+  }
+}
+
 static void
 load_font(uint8_t* font)
 {
-  vram_set_write_address(FONT_BASE);
-  for (int i = 0; i < FONT_SIZE; i++) {
-    vram_write(font[i]);
-  }
+  vdp_memcpy(FONT_BASE, font, FONT_SIZE);
 }
 
 static void
@@ -104,11 +110,50 @@ clear_vram()
   }
 }
 
+// unlocks the f18a
+void
+unlock_f18a()
+{
+  vdp_set_register(0x39, 0x1c);   // VR1/57, value 00011100, write once (corrupts VDPR1)
+  vdp_set_register(0x39, 0x1c);   // write again (unlocks enhanced mode)
+}
+
+// lock the F18A (preserves all settings)
+void
+lock_f18a()
+{
+  vdp_set_register(0x39, 0x00);       // VR1/57, value 00000000 (corrupts VDPR1 if already locked)
+}
+
+bool f18a_detected = false;
+
+static void
+check_f18a()
+{
+  // adapted from jedimatt42
+  unlock_f18a();
+
+  uint8_t testcode[6] = { 0x04, 0xE0, 0x3F, 0x00, 0x03, 0x40 };
+  vdp_memcpy(0x3F00, testcode, 6);
+  vdp_set_register(0x36, 0x3F);
+  vdp_set_register(0x37, 0x00);
+
+  f18a_detected = false;
+  for (uint8_t frames = 0; frames < 3; frames++) {
+    vram_set_read_address(0x3F00);
+    int res = vram_read();
+    if (!res) {
+      f18a_detected = true;
+      break;
+    }
+  }
+  lock_f18a();
+}
+
 bool
 has_f18a()
 {
-  write_status_reg(0x01);
-  return (read_status_reg() & 0xe0) == 0xe0;
+  return f18a_detected;
 }
 
 static uint8_t cols = 40;
@@ -116,19 +161,20 @@ static uint8_t cols = 40;
 static void
 vdp_init()
 {
-  clear_vram();
-  // 80 chars per line
-  register_set(0, R0_M4);
-  register_set(1, R1_16K | R1_BLANK | R1_M1 | R1_SIZE);
-  register_set(2, 0x04); // name table at 0x1000
-  register_set(4, 0x00); // pattern table at 0x0000
-  load_font(font_1);
-
+  //check_f18a();
   if (has_f18a()) {
     cols = 80;
   } else {
     cols = 40;
   }
+
+  clear_vram();
+  // 80 chars per line
+  vdp_set_register(0, R0_M4);
+  vdp_set_register(1, R1_16K | R1_BLANK | R1_M1 | R1_SIZE);
+  vdp_set_register(2, 0x04); // name table at 0x1000
+  vdp_set_register(4, 0x00); // pattern table at 0x0000
+  load_font(font_1);
 }
 
 static void
@@ -159,49 +205,6 @@ set_vram_read_address_to_cursor()
   vram_set_read_address(PAGE_BASE + row * cols + col);
 }
 
-void
-clear_screen()
-{
-  vram_set_write_address(PAGE_BASE);
-  for (uint16_t i = 0; i < ROWS * cols; i++) {
-    vram_write(' ');
-  }
-  row = col = 0;
-  set_vram_write_address_to_cursor();
-}
-
-void
-scroll_up()
-{
-  static uint8_t line[MAXCOLS];
-  for (uint8_t r = 1; r < ROWS; r++) {
-    vram_set_read_address(PAGE_BASE + r * cols);
-    for (uint8_t c = 0; c < cols; c++) {
-      line[c] = vram_read();
-    }
-    vram_set_write_address(PAGE_BASE + (r-1) * cols);
-    for (uint8_t r = 0; r < cols; r++) {
-      vram_write(line[r]);
-    }
-  }
-  vram_set_write_address(PAGE_BASE + cols * (ROWS - 1));
-  for (uint8_t c = 0; c < cols; c++) {
-    vram_write(' ');
-  }    
-}
-
-static void
-newline()
-{
-  if (row == ROWS - 1) {
-    scroll_up();
-  } else {
-    row++;
-  }
-  col = 0;
-  set_vram_write_address_to_cursor();
-}
-
 static char char_under_cursor = ' ';
 
 void
@@ -219,6 +222,71 @@ show_cursor()
   char_under_cursor = vram_read();
   set_vram_write_address_to_cursor();
   vram_write('\177');
+}
+
+void
+set_cursor(uint8_t r, uint8_t c)
+{
+  hide_cursor();
+  row = r < ROWS ? r : (ROWS - 1);
+  col = c < cols ? c : (cols - 1);
+  show_cursor();
+}
+
+void
+clear_screen()
+{
+  hide_cursor();
+  vram_set_write_address(PAGE_BASE);
+  for (uint16_t i = 0; i < ROWS * cols; i++) {
+    vram_write(' ');
+  }
+  row = col = 0;
+  show_cursor();
+}
+
+uint8_t scroll_first_line = 0;
+uint8_t scroll_last_line = ROWS - 1;
+
+void
+set_scroll_region(uint8_t first_line, uint8_t last_line)
+{
+  if (first_line <= last_line && last_line < ROWS) {
+    scroll_first_line = first_line;
+    scroll_last_line = last_line;
+  }
+}
+
+void
+scroll_up()
+{
+  static uint8_t line[MAXCOLS];
+  for (uint8_t r = scroll_first_line + 1; r <= scroll_last_line; r++) {
+    vram_set_read_address(PAGE_BASE + r * cols);
+    for (uint8_t c = 0; c < cols; c++) {
+      line[c] = vram_read();
+    }
+    vram_set_write_address(PAGE_BASE + (r-1) * cols);
+    for (uint8_t r = 0; r < cols; r++) {
+      vram_write(line[r]);
+    }
+  }
+  vram_set_write_address(PAGE_BASE + cols * scroll_last_line);
+  for (uint8_t c = 0; c < cols; c++) {
+    vram_write(' ');
+  }    
+}
+
+static void
+newline()
+{
+  if (row == scroll_last_line) {
+    scroll_up();
+  } else if (row < ROWS) {
+    row++;
+  }
+  col = 0;
+  set_vram_write_address_to_cursor();
 }
 
 void
