@@ -130,24 +130,9 @@ bool f18a_detected = false;
 static void
 check_f18a()
 {
-  // adapted from jedimatt42
   unlock_f18a();
-
-  uint8_t testcode[6] = { 0x04, 0xE0, 0x3F, 0x00, 0x03, 0x40 };
-  vdp_memcpy(0x3F00, testcode, 6);
-  vdp_set_register(0x36, 0x3F);
-  vdp_set_register(0x37, 0x00);
-
-  f18a_detected = false;
-  for (uint8_t frames = 0; frames < 3; frames++) {
-    vram_set_read_address(0x3F00);
-    int res = vram_read();
-    if (!res) {
-      f18a_detected = true;
-      break;
-    }
-  }
-  lock_f18a();
+  vdp_set_register(0x0f, 1);
+  f18a_detected = (read_status_reg() & ~3) == 0xE0;
 }
 
 bool
@@ -161,7 +146,7 @@ static uint8_t cols = 40;
 static void
 vdp_init()
 {
-  //check_f18a();
+  check_f18a();
   if (has_f18a()) {
     cols = 80;
   } else {
@@ -174,6 +159,7 @@ vdp_init()
   vdp_set_register(1, R1_16K | R1_BLANK | R1_M1 | R1_SIZE);
   vdp_set_register(2, 0x04); // name table at 0x1000
   vdp_set_register(4, 0x00); // pattern table at 0x0000
+  vdp_set_register(7, 0xf0);
   load_font(font_1);
 }
 
@@ -222,6 +208,18 @@ show_cursor()
   char_under_cursor = vram_read();
   set_vram_write_address_to_cursor();
   vram_write('\177');
+}
+
+uint8_t
+get_row()
+{
+  return row;
+}
+
+uint8_t
+get_col()
+{
+  return col;
 }
 
 void
