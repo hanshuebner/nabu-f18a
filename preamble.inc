@@ -3,7 +3,7 @@ static void orgit() __naked {
     org     0x140D
     nop
     nop
-    nop
+    di
     __endasm;
 }
 

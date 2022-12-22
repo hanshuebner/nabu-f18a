@@ -13,9 +13,20 @@ main()
 {
   console_init();
   clear_screen();
-  put_string("Hello WORLD!\n\n");
-  put_string("This NABU has a F18A VDP replacement fitted.\n\n");
-  put_string("It can thus display 80 characters per line\n");
+  
+  if (has_f18a()) {
+    put_string("F18A found, 80 chars/line\n");
+  } else {
+    put_string("F18A not found, 40 chars/line\n");
+  }
 
-  while (true) {}
+  while (true) {
+    uint8_t c = keyboard_get();
+    if (c) {
+      if (c == '\r') {
+        c = '\n';
+      }
+      put_char(c);
+    }
+  }
 }
