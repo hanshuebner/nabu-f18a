@@ -192,6 +192,7 @@ set_vram_read_address_to_cursor()
 }
 
 static char char_under_cursor = ' ';
+static bool cursor_enabled = true;
 
 void
 hide_cursor()
@@ -204,10 +205,12 @@ hide_cursor()
 void
 show_cursor()
 {
-  set_vram_read_address_to_cursor();
-  char_under_cursor = vram_read();
-  set_vram_write_address_to_cursor();
-  vram_write('\177');
+  if (cursor_enabled) {
+    set_vram_read_address_to_cursor();
+    char_under_cursor = vram_read();
+    set_vram_write_address_to_cursor();
+    vram_write('\177');
+  }
 }
 
 uint8_t
@@ -356,4 +359,16 @@ keyboard_get()
     }
   }
   return 0;
+}
+
+void
+cursor_on()
+{
+  cursor_enabled = true;
+}
+
+void
+cursor_off()
+{
+  cursor_enabled = false;
 }

@@ -43,26 +43,6 @@ has_interrupt(uint8_t mask)
   return z80_inp(PSG_DATA) & 1;
 }
 
-#if 0
-char line_buffer[LINE_BUFFER_SIZE + 1];
-char input_cursor = 0;
-
-static void
-process_keyboard_char(uint8_t c)
-{
-  switch (c) {
-  default:
-    if (c >= ' ' && c < '\177') {
-      if (input_cursor < LINE_BUFFER_SIZE) {
-        line_buffer[input_cursor++] = c;
-        put_char(c);
-      }
-    }
-  }
-}
-#endif
-
-
 const char* divider = "-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=";
 
 void
@@ -83,17 +63,64 @@ main()
   hcca_write(CMD_CHAT);
   while (true) {
     if (has_interrupt(INT_MASK_KEYBOARD)) {
-      uint8_t c = keyboard_get();
-      if (c) {
-        put_char(c);
-        hcca_write(c);
-      }
+      static void handle_keyboard_input();
+      handle_keyboard_input();
     } else if (has_interrupt(INT_MASK_HCCARINT)) {
       uint8_t save_col = get_col();
       set_cursor(21, server_col);
       put_char(hcca_read());
       server_col = get_col();
       set_cursor(23, save_col);
+    }
+  }
+}
+
+static void
+clear_input_line()
+{
+  uint8_t width = has_f18a() ? 80 : 40;
+  cursor_off();
+  set_cursor(23, 0);
+  for (int i = 0; i < width; i++) {
+    put_char(' ');
+  }
+  cursor_on();
+}
+
+char line_buffer[LINE_BUFFER_SIZE + 1];
+char input_cursor = 0;
+
+static void
+handle_keyboard_input()
+{
+  uint8_t c = keyboard_get();
+  switch (c) {
+  case '\010':
+  case '\177':
+    if (input_cursor) {
+      input_cursor--;
+      put_string("\177");
+    }
+    break;
+  case '\r':
+  case '\n':
+    if (input_cursor) {
+      line_buffer[input_cursor++] = '\r';
+      for (uint8_t i = 0; i < input_cursor; i++) {
+        while (!has_interrupt(INT_MASK_HCCATINT))
+          ;
+        hcca_write(line_buffer[i]);
+      }
+      input_cursor = 0;
+      clear_input_line();
+    }
+    break;
+  default:
+    if (c >= ' ' && c < '\177') {
+      if (input_cursor < LINE_BUFFER_SIZE) {
+        line_buffer[input_cursor++] = c;
+        put_char(c);
+      }
     }
   }
 }
