@@ -111,9 +111,11 @@ static void
 handle_keyboard_input()
 {
   uint8_t c = keyboard_get();
+
   switch (c) {
-  case '\010':
-  case '\177':
+
+  case '\010': // ^H BS  Backspace
+  case '\177': //    DEL Delete
     if (input_cursor) {
       if (input_offset && ((input_cursor - input_offset) % (screen_width / 2) == 0)) {
         input_cursor--;
@@ -125,6 +127,7 @@ handle_keyboard_input()
       }
     }
     break;
+
   case '\027': // ^W ETB delete word
     while (input_cursor && line_buffer[input_cursor-1] == ' ') {
       input_cursor--;
@@ -137,12 +140,14 @@ handle_keyboard_input()
     }
     redisplay_input();
     break;
+
   case '\025': // ^U NAK delete input
     input_cursor = 0;
     redisplay_input();
     break;
-  case '\r':
-  case '\n':
+
+  case '\r': // ^M CR Carriage Return
+  case '\n': // ^J LF Linefeed
     if (input_cursor) {
       line_buffer[input_cursor++] = '\r';
       for (uint8_t i = 0; i < input_cursor; i++) {
@@ -155,6 +160,7 @@ handle_keyboard_input()
       clear_input_line();
     }
     break;
+
   default:
     if (c >= ' ' && c < '\177') {
       if (input_cursor < LINE_BUFFER_SIZE) {
