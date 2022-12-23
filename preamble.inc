@@ -4,6 +4,11 @@ static void orgit() __naked {
     nop
     nop
     di
-    __endasm;
+  __endasm;
 }
 
+static void entry_point()
+{
+  extern void main();
+  main();
+}

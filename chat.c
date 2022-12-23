@@ -38,39 +38,6 @@ has_interrupt(uint8_t mask)
 const char* divider = "-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=";
 uint8_t screen_width;
 
-void
-main()
-{
-  static uint8_t server_col;
-  console_init();
-  clear_screen();
-
-  screen_width = has_f18a() ? 80 : 40;
-
-  set_scroll_region(0, 21);
-  set_cursor(22, 0);
-  put_string(divider);
-  if (has_f18a()) {
-    put_string(divider);
-  }
-  set_cursor(23, 0);
-
-  server_col = 0;
-  hcca_write(CMD_CHAT);
-  while (true) {
-    if (has_interrupt(INT_MASK_KEYBOARD)) {
-      static void handle_keyboard_input();
-      handle_keyboard_input();
-    } else if (has_interrupt(INT_MASK_HCCARINT)) {
-      uint8_t save_col = get_col();
-      set_cursor(21, server_col);
-      put_char(hcca_read());
-      server_col = get_col();
-      set_cursor(23, save_col);
-    }
-  }
-}
-
 static void
 clear_input_line()
 {
@@ -171,6 +138,38 @@ handle_keyboard_input()
       } else {
         beep();
       }
+    }
+  }
+}
+
+void
+main()
+{
+  static uint8_t server_col;
+  console_init();
+  clear_screen();
+
+  screen_width = has_f18a() ? 80 : 40;
+
+  set_scroll_region(0, 21);
+  set_cursor(22, 0);
+  put_string(divider);
+  if (has_f18a()) {
+    put_string(divider);
+  }
+  set_cursor(23, 0);
+
+  server_col = 0;
+  hcca_write(CMD_CHAT);
+  while (true) {
+    if (has_interrupt(INT_MASK_KEYBOARD)) {
+      handle_keyboard_input();
+    } else if (has_interrupt(INT_MASK_HCCARINT)) {
+      uint8_t save_col = get_col();
+      set_cursor(21, server_col);
+      put_char(hcca_read());
+      server_col = get_col();
+      set_cursor(23, save_col);
     }
   }
 }
