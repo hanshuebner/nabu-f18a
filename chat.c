@@ -41,7 +41,7 @@ uint8_t screen_width;
 void
 main()
 {
-  static uint8_t server_col = 0;
+  static uint8_t server_col;
   console_init();
   clear_screen();
 
@@ -55,6 +55,7 @@ main()
   }
   set_cursor(23, 0);
 
+  server_col = 0;
   hcca_write(CMD_CHAT);
   while (true) {
     if (has_interrupt(INT_MASK_KEYBOARD)) {
@@ -130,11 +131,15 @@ handle_keyboard_input()
       }
       input_cursor--;
     }
+    while (input_cursor < input_offset) {
+      input_offset -= screen_width / 2;
+    }
     redisplay_input();
     break;
 
   case '\025': // ^U NAK delete input
     input_cursor = 0;
+    input_offset = 0;
     redisplay_input();
     break;
 
