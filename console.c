@@ -4,6 +4,7 @@
 #include <string.h>
 #include <z80.h>
 
+#include "nabu.h"
 #include "console.h"
 
 #include "fonts.inc"
@@ -28,14 +29,6 @@
 
 #define ROWS    24
 #define MAXCOLS 80
-
-#define VDP_DATA         0xa0
-#define VDP_STATUS       0xa1
-
-#define KEYBOARD_DATA    0x90
-#define KEYBOARD_STATUS  0x91
-
-#define KEYBOARD_RXRDY   0x02
 
 // Writes a byte to databus for register access
 inline void
@@ -169,11 +162,31 @@ keyboard_init()
   // ROM has initialized keyboard UART, nothing to be done here
 }
 
+static void
+psg_init()
+{
+  z80_outp(PSG_ADDRESS, '\000'); // C0 Fine tune
+  z80_outp(PSG_DATA, 80);
+  z80_outp(PSG_ADDRESS, '\001'); // C0 Coarse tune
+  z80_outp(PSG_DATA, 0);
+  z80_outp(PSG_ADDRESS, '\007'); // Mixer 1
+  z80_outp(PSG_DATA, 0x7e);
+  z80_outp(PSG_ADDRESS, '\010'); // Mixer 2
+  z80_outp(PSG_DATA, 0x0);
+  z80_outp(PSG_ADDRESS, '\013'); // Envelope fine tune
+  z80_outp(PSG_DATA, 0);
+  z80_outp(PSG_ADDRESS, '\014'); // Envelope coarse tune
+  z80_outp(PSG_DATA, 20);
+  z80_outp(PSG_ADDRESS, '\015'); // Envelope shape
+  z80_outp(PSG_DATA, 0x00);
+}
+
 void
 console_init()
 {
   vdp_init();
   keyboard_init();
+  psg_init();
 }
 
 static uint8_t row = 0;
@@ -371,4 +384,13 @@ void
 cursor_off()
 {
   cursor_enabled = false;
+}
+
+void
+beep()
+{
+  z80_outp(PSG_ADDRESS, '\015'); // Envelope shape
+  z80_outp(PSG_DATA, 0x00);
+  z80_outp(PSG_ADDRESS, '\010'); // Mixer 2
+  z80_outp(PSG_DATA, 0x10);
 }

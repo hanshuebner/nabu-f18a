@@ -4,19 +4,11 @@
 #include <string.h>
 #include <z80.h>
 
+#include "nabu.h"
 #include "console.h"
 
 #include "preamble.inc"
 
-#define HCCA_REGISTER    0x80
-#define CONTROL_REGISTER 0x00
-
-#define PSG_DATA         0x40
-#define PSG_ADDRESS      0x41
-
-#define INT_MASK_HCCARINT 0x80
-#define INT_MASK_HCCATINT 0x40
-#define INT_MASK_KEYBOARD 0x20
 
 #define CMD_CHAT         0xa0
 #define LINE_BUFFER_SIZE 120
@@ -171,6 +163,8 @@ handle_keyboard_input()
         } else {
           put_char(c);
         }
+      } else {
+        beep();
       }
     }
   }

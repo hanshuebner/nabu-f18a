@@ -13,5 +13,6 @@ extern uint8_t get_col();
 extern void set_scroll_region(uint8_t first_line, uint8_t last_line);
 extern void cursor_on();
 extern void cursor_off();
+extern void beep();
 
 #endif
