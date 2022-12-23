@@ -44,6 +44,7 @@ has_interrupt(uint8_t mask)
 }
 
 const char* divider = "-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=";
+uint8_t screen_width;
 
 void
 main()
@@ -51,7 +52,9 @@ main()
   static uint8_t server_col = 0;
   console_init();
   clear_screen();
-  
+
+  screen_width = has_f18a() ? 80 : 40;
+
   set_scroll_region(0, 21);
   set_cursor(22, 0);
   put_string(divider);
@@ -78,17 +81,31 @@ main()
 static void
 clear_input_line()
 {
-  uint8_t width = has_f18a() ? 80 : 40;
   cursor_off();
   set_cursor(23, 0);
-  for (int i = 0; i < width; i++) {
+  for (int i = 0; i < screen_width; i++) {
     put_char(' ');
   }
   cursor_on();
 }
 
 char line_buffer[LINE_BUFFER_SIZE + 1];
-char input_cursor = 0;
+uint16_t input_cursor = 0;
+uint16_t input_offset = 0;
+
+static void
+redisplay_input()
+{
+  set_cursor(23, 0);
+  for (uint16_t i = 0; i < screen_width; i++) {
+    if (i < input_cursor - input_offset) {
+      put_char(line_buffer[input_offset + i]);
+    } else {
+      put_char(' ');
+    }
+  }
+  set_cursor(23, input_cursor - input_offset);
+}
 
 static void
 handle_keyboard_input()
@@ -98,9 +115,31 @@ handle_keyboard_input()
   case '\010':
   case '\177':
     if (input_cursor) {
-      input_cursor--;
-      put_string("\177");
+      if (input_offset && ((input_cursor - input_offset) % (screen_width / 2) == 0)) {
+        input_cursor--;
+        input_offset -= screen_width / 2;
+        redisplay_input();
+      } else {
+        input_cursor--;
+        put_string("\177");
+      }
     }
+    break;
+  case '\027': // ^W ETB delete word
+    while (input_cursor && line_buffer[input_cursor-1] == ' ') {
+      input_cursor--;
+    }
+    while (input_cursor) {
+      if (line_buffer[input_cursor-1] == ' ') {
+        break;
+      }
+      input_cursor--;
+    }
+    redisplay_input();
+    break;
+  case '\025': // ^U NAK delete input
+    input_cursor = 0;
+    redisplay_input();
     break;
   case '\r':
   case '\n':
@@ -112,6 +151,7 @@ handle_keyboard_input()
         hcca_write(line_buffer[i]);
       }
       input_cursor = 0;
+      input_offset = 0;
       clear_input_line();
     }
     break;
@@ -119,7 +159,12 @@ handle_keyboard_input()
     if (c >= ' ' && c < '\177') {
       if (input_cursor < LINE_BUFFER_SIZE) {
         line_buffer[input_cursor++] = c;
-        put_char(c);
+        if ((input_offset + input_cursor) % screen_width == 0) {
+          input_offset += screen_width / 2;
+          redisplay_input();
+        } else {
+          put_char(c);
+        }
       }
     }
   }
