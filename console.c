@@ -80,7 +80,7 @@ vram_read()
 }
 
 void
-vdp_memcpy(uint16_t destination, uint8_t* src, uint16_t count)
+copy_to_vram(uint16_t destination, uint8_t* src, uint16_t count)
 {
   vram_set_write_address(destination);
   for (int i = 0; i < count; i++) {
@@ -91,7 +91,7 @@ vdp_memcpy(uint16_t destination, uint8_t* src, uint16_t count)
 static void
 load_font(uint8_t* font)
 {
-  vdp_memcpy(FONT_BASE, font, FONT_SIZE);
+  copy_to_vram(FONT_BASE, font, FONT_SIZE);
 }
 
 static void
@@ -148,11 +148,11 @@ vdp_init()
 
   clear_vram();
   // 80 chars per line
-  vdp_set_register(0, R0_M4);
+  vdp_set_register(0, R0_M4); // R0_M4 selects 80 cols mode on the F18A, ignored by the TMS9918
   vdp_set_register(1, R1_16K | R1_BLANK | R1_M1 | R1_SIZE);
   vdp_set_register(2, 0x04); // name table at 0x1000
   vdp_set_register(4, 0x00); // pattern table at 0x0000
-  vdp_set_register(7, 0xf0);
+  vdp_set_register(7, 0xf0); // Colors: white on black
   load_font(font_1);
 }
 
