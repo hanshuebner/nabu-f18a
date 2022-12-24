@@ -10,6 +10,7 @@
 #define INT_MASK_HCCARINT 0x80
 #define INT_MASK_HCCATINT 0x40
 #define INT_MASK_KEYBOARD 0x20
+#define INT_MASK_VDP      0x10
 
 #define VDP_DATA         0xa0
 #define VDP_STATUS       0xa1

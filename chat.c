@@ -28,7 +28,6 @@ hcca_read()
 inline bool
 has_interrupt(uint8_t mask)
 {
-  // Enable HCCA and keyboard interrupts
   z80_outp(PSG_ADDRESS, 0x0E);
   z80_outp(PSG_DATA, mask);
   z80_outp(PSG_ADDRESS, 0x0F);
