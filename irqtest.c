@@ -26,7 +26,7 @@ print_count(uint16_t count)
 }
 
 void
-print_hex(uint16_t value)
+print_u16x(uint16_t value)
 {
   char buf[5];
   buf[4] = 0;
@@ -38,15 +38,30 @@ print_hex(uint16_t value)
   put_string(buf);
 }
 
+void
+print_u8x(uint8_t value)
+{
+  char buf[3];
+  buf[2] = 0;
+  for (int8_t i = 1; i >= 0; i--) {
+    uint8_t nibble = value & 0x0f;
+    buf[i] = nibble + ((nibble <= 9) ? '0' : ('A' - 10));
+    value >>= 4;
+  }
+  put_string(buf);
+}
+
 extern uint16_t irq_table;
 extern uint16_t hccar_count;
 extern uint16_t hccat_count;
 extern uint16_t keyb_count;
 extern uint16_t vdp_count;
-extern uint16_t option3_count;
-extern uint16_t option2_count;
-extern uint16_t option1_count;
 extern uint16_t option0_count;
+extern uint16_t option1_count;
+extern uint16_t option2_count;
+extern uint16_t option3_count;
+
+extern char last_char;
 
 extern void init_interrupts();
 
@@ -65,60 +80,47 @@ main()
   put_string("Interrupt test");
 
   set_cursor(2, 0);
-  put_string("HCCA Receive: ");
-  set_cursor(3, 0);
-  put_string("HCCA Transmit: ");
-  set_cursor(4, 0);
-  put_string("Keyboard: ");
-  set_cursor(5, 0);
-  put_string("VDP: ");
+  put_string("HCCA Receive:\n");
+  put_string("HCCA Transmit:\n");
+  put_string("Keyboard:\n");
+  put_string("VDP:\n");
+  put_string("Option 0:\n");
+  put_string("Option 1:\n");
+  put_string("Option 2:\n");
+  put_string("Option 3:\n");
+  set_cursor(11, 0);
+  put_string("Last char:       $");
 
-  set_cursor(13, 0);
-  put_string("Vectors:\n");
-  uint16_t* p = (uint16_t*) &irq_table;
-  print_hex(p[0x00]); put_char(' ');
-  print_hex(p[0x01]); put_char(' ');
-  print_hex(p[0x02]); put_char(' ');
-  print_hex(p[0x03]); put_char(' ');
-  put_char('\n');
-  print_hex(p[0x04]); put_char(' ');
-  print_hex(p[0x05]); put_char(' ');
-  print_hex(p[0x06]); put_char(' ');
-  print_hex(p[0x07]); put_char(' ');
-  put_char('\n');
-  put_string("Counter base: "); print_hex((uint16_t) &hccar_count); put_char('\n');
-  put_string("Vector base: "); print_hex((uint16_t) &irq_table); put_char('\n');
-
-  p = (uint16_t*) &hccar_count;
   uint16_t alive_count = 0;
   while (true) {
     set_cursor(2, 15);
-    print_count(p[0]);
     print_count(hccar_count);
 
     set_cursor(3, 15);
-    print_count(p[1]);
     print_count(hccat_count);
 
     set_cursor(4, 15);
-    print_count(p[2]);
     print_count(keyb_count);
 
     set_cursor(5, 15);
-    print_count(p[3]);
     print_count(vdp_count);
 
     set_cursor(6, 15);
-    print_count(p[4]);
+    print_count(option0_count);
 
     set_cursor(7, 15);
-    print_count(p[5]);
+    print_count(option1_count);
 
     set_cursor(8, 15);
-    print_count(p[6]);
+    print_count(option2_count);
 
     set_cursor(9, 15);
-    print_count(p[7]);
+    print_count(option3_count);
+
+    set_cursor(11, 15);
+    put_char(last_char >= ' ' && last_char <= '\177' ? last_char : ' ');
+    set_cursor(11, 18);
+    print_u8x(last_char);
 
     set_cursor(23, 0);
     print_count(alive_count++);

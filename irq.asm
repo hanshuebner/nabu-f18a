@@ -20,8 +20,10 @@ PUBLIC _init_interrupts
 .keyb_irq
         push    af
         push    hl
-        ld      hl, _keyb_count
         in      a, (0x90)
+        ld      hl, _last_char
+        ld      (hl), a
+        ld      hl, _keyb_count
         jp      increment_counter
 .vdp_irq
         push    af
@@ -75,15 +77,8 @@ PUBLIC _irq_table
         dw      option1_irq
         dw      option2_irq
         dw      option3_irq
-        db      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-        db      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-        db      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-        db      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-        db      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-        db      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-        db      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-        db      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-SECTION counters
+
+SECTION variables
 PUBLIC _hccar_count
 ._hccar_count dw 0
 PUBLIC _hccat_count
@@ -100,3 +95,6 @@ PUBLIC _option2_count
 ._option2_count dw 6
 PUBLIC _option3_count
 ._option3_count dw 7
+
+PUBLIC _last_char
+._last_char dw 0
