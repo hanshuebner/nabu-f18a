@@ -47,15 +47,19 @@ read_status_reg()
 inline void
 vdp_set_register(uint8_t reg, uint8_t value)
 {
+  __asm di __endasm;
   write_status_reg(value);
   write_status_reg(0x80 | reg);
+  __asm ei __endasm;
 }
 
 inline void
 vram_set_write_address(uint16_t address)
 {
+  __asm di __endasm;
   z80_outp(VDP_STATUS, address & 0xff);
   z80_outp(VDP_STATUS, 0x40 | (address >> 8) & 0x3f);
+  __asm ei __endasm;
 }
 
 // Writes a byte to databus for vram access
@@ -68,8 +72,10 @@ vram_write(uint8_t value)
 inline void
 vram_set_read_address(uint16_t address)
 {
+  __asm di __endasm;
   z80_outp(VDP_STATUS, address & 0xff);
   z80_outp(VDP_STATUS, (address >> 8) & 0x3f);
+  __asm ei __endasm;
 }
 
 // Reads a byte from databus for vram access
@@ -149,7 +155,7 @@ vdp_init()
   clear_vram();
   // 80 chars per line
   vdp_set_register(0, R0_M4); // R0_M4 selects 80 cols mode on the F18A, ignored by the TMS9918
-  vdp_set_register(1, R1_16K | R1_BLANK | R1_M1 | R1_SIZE);
+  vdp_set_register(1, R1_16K | R1_IE0 | R1_BLANK | R1_M1 | R1_SIZE);
   vdp_set_register(2, 0x04); // name table at 0x1000
   vdp_set_register(4, 0x00); // pattern table at 0x0000
   vdp_set_register(7, 0xf0); // Colors: white on black

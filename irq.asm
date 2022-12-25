@@ -28,6 +28,7 @@ PUBLIC _init_interrupts
 .vdp_irq
         push    af
         push    hl
+        in      a, (0xa1)
         ld      hl, _vdp_count
         jp      increment_counter
 .option0_irq
@@ -53,9 +54,9 @@ PUBLIC _init_interrupts
 
 .increment_counter
         inc     (hl)
-        jr      nc, skip
+        jr      nz, skip
         inc     l
-        jr      nc, skip_h
+        jr      nz, skip_h
         inc     h
 .skip_h
         inc     (hl)

@@ -67,6 +67,10 @@ extern void init_interrupts();
 
 main()
 {
+  z80_outp(PSG_ADDRESS, 0x0E);
+  z80_outp(PSG_DATA, 0);
+  init_interrupts();
+
   static uint8_t server_col;
   console_init();
   clear_screen();
@@ -74,7 +78,6 @@ main()
 
   z80_outp(PSG_ADDRESS, 0x0E);
   z80_outp(PSG_DATA, INT_MASK_VDP | INT_MASK_KEYBOARD);
-  init_interrupts();
 
   set_cursor(0, 0);
   put_string("Interrupt test");
