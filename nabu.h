@@ -7,6 +7,9 @@
 #define PSG_DATA         0x40
 #define PSG_ADDRESS      0x41
 
+#define PSG_REG_IO_A     0x0e
+#define PSG_REG_IO_B     0x0f
+
 #define INT_MASK_HCCARINT 0x80
 #define INT_MASK_HCCATINT 0x40
 #define INT_MASK_KEYBOARD 0x20

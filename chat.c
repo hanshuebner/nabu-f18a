@@ -145,10 +145,10 @@ void
 main()
 {
   static uint8_t server_col;
-  console_init();
+  console_init(true);
   clear_screen();
 
-  screen_width = has_f18a() ? 80 : 40;
+  screen_width = console_width();
 
   set_scroll_region(0, 21);
   set_cursor(22, 0);

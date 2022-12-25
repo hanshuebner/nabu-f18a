@@ -2,7 +2,8 @@
 #define _console_h
 
 extern bool has_f18a();
-extern void console_init();
+extern void console_init(bool text80);
+extern uint8_t console_width();
 extern void put_char(char c);
 extern void put_string(const char* s);
 extern void clear_screen();

@@ -129,7 +129,6 @@ bool f18a_detected = false;
 static void
 check_f18a()
 {
-  unlock_f18a();
   vdp_set_register(0x0f, 1);
   f18a_detected = (read_status_reg() & ~3) == 0xE0;
 }
@@ -142,11 +141,17 @@ has_f18a()
 
 static uint8_t cols = 40;
 
+uint8_t
+console_width()
+{
+  return cols;
+}
+
 static void
-vdp_init()
+vdp_init(bool text80)
 {
   check_f18a();
-  if (has_f18a()) {
+  if (text80 && has_f18a()) {
     cols = 80;
   } else {
     cols = 40;
@@ -154,7 +159,7 @@ vdp_init()
 
   clear_vram();
   // 80 chars per line
-  vdp_set_register(0, R0_M4); // R0_M4 selects 80 cols mode on the F18A, ignored by the TMS9918
+  vdp_set_register(0, text80 ? R0_M4 : 0); // R0_M4 selects 80 cols mode on the F18A
   vdp_set_register(1, R1_16K | R1_IE0 | R1_BLANK | R1_M1 | R1_SIZE);
   vdp_set_register(2, 0x04); // name table at 0x1000
   vdp_set_register(4, 0x00); // pattern table at 0x0000
@@ -188,9 +193,9 @@ psg_init()
 }
 
 void
-console_init()
+console_init(bool text80)
 {
-  vdp_init();
+  vdp_init(text80);
   keyboard_init();
   psg_init();
 }
